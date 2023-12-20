@@ -1,0 +1,4 @@
+{"source_file": "examples\\test_sources\\bvand_char.smt2", "output": [{"c_file_path": "examples/bvand_c\\bvand_char.c", "yml_file_path": "examples/bvand_c\\bvand_char.yml"}], "walltime": 0.009048700332641602}
+{"source_file": "examples\\test_sources\\bvand_int.smt2", "output": [{"c_file_path": "examples/bvand_c\\bvand_int.c", "yml_file_path": "examples/bvand_c\\bvand_int.yml"}], "walltime": 0.0}
+{"source_file": "examples\\test_sources\\bvand_longlong.smt2", "output": [{"c_file_path": "examples/bvand_c\\bvand_longlong.c", "yml_file_path": "examples/bvand_c\\bvand_longlong.yml"}], "walltime": 0.009729862213134766}
+{"source_file": "examples\\test_sources\\bvand_short.smt2", "output": [{"c_file_path": "examples/bvand_c\\bvand_short.c", "yml_file_path": "examples/bvand_c\\bvand_short.yml"}], "walltime": 0.001207590103149414}

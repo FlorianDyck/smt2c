@@ -1,0 +1,4 @@
+pycparser~=2.21
+PySMT~=0.9.5
+tqdm~=4.66.1
+pathos~=0.3.1
