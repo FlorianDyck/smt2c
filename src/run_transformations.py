@@ -131,20 +131,25 @@ class FileTransformer:
 
 # Parsing input arguments ----------------------------------------------------------------
 
-def dedup_input_files(args, input_files):
-    def _exists(file_name):
-        output_path = os.path.join(args.output_dir, os.path.basename(file_name))
-        return not os.path.exists(output_path)
+def exists(args, file_name):
+    output_path = os.path.join(args.output_dir, os.path.basename(file_name)).removesuffix('smt2') + 'c'
+    preserved_output_path = os.path.join(
+        args.output_dir,
+        args.prefix + os.path.basename(os.path.dirname(file_name)) + args.suffix,
+        os.path.basename(file_name)
+    ).removesuffix('smt2') + 'c'
 
-    return list(filter(_exists, input_files))
+    return (os.path.exists(output_path) or os.path.exists(preserved_output_path) or
+            os.path.exists(output_path[:-2] + '-0.c') or os.path.exists(preserved_output_path[:-2] + '-0.c'))
+
+
+def dedup_input_files(args, input_files):
+    return list(filter(lambda file: not exists(args, file), input_files))
 
 
 def dup_input_files(args, input_files):
-    def _exists(file_name):
-        output_path = os.path.join(args.output_dir, os.path.basename(file_name))
-        return not os.path.exists(output_path)
 
-    return list(filter(_exists, input_files))
+    return list(filter(lambda file: exists(args, file), input_files))
 
 
 def prepare_parser():
