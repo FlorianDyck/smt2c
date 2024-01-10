@@ -119,7 +119,7 @@ class FileTransformer:
                         .format(**info)
                 )
                 o.write(c_code)
-            
+
             output_files.append({"c_file_path": f'{output_path}.c', "yml_file_path": f'{output_path}.yml'})
 
         return [{
@@ -127,13 +127,19 @@ class FileTransformer:
             "output"     : output_files,
             "walltime"   : time() - start_time
         }]
-        
 
 
 # Parsing input arguments ----------------------------------------------------------------
 
 def dedup_input_files(args, input_files):
-    
+    def _exists(file_name):
+        output_path = os.path.join(args.output_dir, os.path.basename(file_name))
+        return not os.path.exists(output_path)
+
+    return list(filter(_exists, input_files))
+
+
+def dup_input_files(args, input_files):
     def _exists(file_name):
         output_path = os.path.join(args.output_dir, os.path.basename(file_name))
         return not os.path.exists(output_path)
@@ -143,24 +149,25 @@ def dedup_input_files(args, input_files):
 
 def prepare_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_files", nargs = "+",
-                        help = ".sml2 files to transform")
-    parser.add_argument("-o", "--output_dir", type = str, required = True,
-                        help = "file to put the transformed files into")
-    parser.add_argument("--timeout", type = float,
-                        help = "timeout for each file in s")
-    parser.add_argument("--recursion_limit", type = int, default = 30000,
-                        help = "limits the recursion depht while traversing the abstract syntax tree")
-    parser.add_argument("--prefix", type = str, default = '', help = "prefix for folder and file names")
-    parser.add_argument("--suffix", type = str, default = '', help = "suffix for folder and file names")
-    parser.add_argument("--header", type = str, default = '', help = "header prefixed to transformed sources files")
-    parser.add_argument("--header_file", type = str, default = '', help = "path to header text")
-    parser.add_argument("--no_dedup", action = "store_true", help = "prevents overriding of already existing files")
+    parser.add_argument("input_files", nargs="+",
+                        help=".sml2 files to transform")
+    parser.add_argument("-o", "--output_dir", type=str, required=True,
+                        help="file to put the transformed files into")
+    parser.add_argument("--timeout", type=float,
+                        help="timeout for each file in s")
+    parser.add_argument("--recursion_limit", type=int, default=30000,
+                        help="limits the recursion depht while traversing the abstract syntax tree")
+    parser.add_argument("--prefix", type=str, default='', help="prefix for folder and file names")
+    parser.add_argument("--suffix", type=str, default='', help="suffix for folder and file names")
+    parser.add_argument("--header", type=str, default='', help="header prefixed to transformed sources files")
+    parser.add_argument("--header_file", type=str, default='', help="path to header text")
+    parser.add_argument("--no_dedup", action="store_true", help="prevents overriding of already existing files")
+    parser.add_argument("--override", action="store_true", help="only overrides already existing files")
 
-    parser.add_argument("--parallel", action = "store_true",
-                        help = "makes the transformation of different files run in parallel")
-    parser.add_argument("--preserve_structure", action = "store_true",
-                        help = "keeps the folder structure of the original")
+    parser.add_argument("--parallel", action="store_true",
+                        help="makes the transformation of different files run in parallel")
+    parser.add_argument("--preserve_structure", action="store_true",
+                        help="keeps the folder structure of the original")
 
     return parser
 
@@ -189,12 +196,15 @@ def main(*args):
     if args.no_dedup:
         input_files = dedup_input_files(args, input_files)
 
+    if args.override:
+        input_files = dup_input_files(args, input_files)
+
     # Guarantees that files of similar complexity are batched together
-    input_files = sorted(input_files, key = lambda path: os.stat(path).st_size)
+    input_files = sorted(input_files, key=lambda path: os.stat(path).st_size)
 
     print(f"Found {len(input_files)} files...\n"
           f"Start transformation...")
-    
+
     transformer = FileTransformer(args)
 
     if args.preserve_structure:
@@ -204,7 +214,7 @@ def main(*args):
             copy_info_files(folder, os.path.join(args.output_dir, basename))
 
     # Run mapreduce
-    mapreduce(input_files, transformer, reducer_fn = args.output_dir, parallel = args.parallel, report = True)
+    mapreduce(input_files, transformer, reducer_fn=args.output_dir, parallel=args.parallel, report=True)
 
 
 if __name__ == '__main__':
