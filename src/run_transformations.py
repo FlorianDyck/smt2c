@@ -29,6 +29,7 @@ class FileTransformer:
         self._suffix = config.suffix
         self._header = config.header
         self._timeout = config.timeout
+        self._print_failure_reason = config.print_failure_reason
         if config.header_file:
             with open(config.header_file, 'r') as r:
                 self._header = r.read()
@@ -168,6 +169,9 @@ def prepare_parser():
     parser.add_argument("--header_file", type=str, default='', help="path to header text")
     parser.add_argument("--no_dedup", action="store_true", help="prevents overriding of already existing files")
     parser.add_argument("--override", action="store_true", help="only overrides already existing files")
+    parser.add_argument("--print_failure_reason", action="store_true",
+                        help="after the assert there will be printf statements to print the truthfulness of every "
+                             "assert. With this we can see where a model fails.")
 
     parser.add_argument("--parallel", action="store_true",
                         help="makes the transformation of different files run in parallel")

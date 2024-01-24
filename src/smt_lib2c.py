@@ -284,7 +284,8 @@ def to_c(f_node: FNode, to_c_name, allow_exceptions=True, timeout=None) -> Tuple
         case ops.BV_EXTRACT, 1 if (f_node.bv_extract_end() - f_node.bv_extract_start() + 1) == 1:  # 27
             return c_ast.Cast(
                 c_ast.Typename(None, [], None, c_ast.TypeDecl(None, [], None, c_ast.IdentifierType(['signed', 'int']))),
-                c_ast.BinaryOp('>>', *children, c_ast.Constant('int', str(f_node.bv_extract_start())))
+                c_ast.BinaryOp('&', c_ast.Constant('int', '0x01'),
+                               c_ast.BinaryOp('>>', *children, c_ast.Constant('int', str(f_node.bv_extract_start()))))
             ), Info(pysmt.typing.BOOL)
         case ops.BV_ULT, 2: return c_ast.BinaryOp('<',  *unsigned(children)), BOOL_INFO  # 28
         case ops.BV_ULE, 2: return c_ast.BinaryOp('<=', *unsigned(children)), BOOL_INFO  # 29
@@ -402,11 +403,36 @@ def transform_one_check_script(script: SmtLibScript, allow_exceptions=True, time
     return to_program([], variable_declarations, to_c(strict, name, allow_exceptions, timeout)[0]), info
 
 
-def main(reader, allow_exceptions=True, timeout=None, c_generator=pycparser.c_generator.CGenerator()
-         ) -> list[str, dict[str, str]]:
+def main(reader, allow_exceptions=True, timeout=None, c_generator=pycparser.c_generator.CGenerator(),
+         print_failure_reason: bool=False) -> list[str, dict[str, str]]:
     parser = SmtLibParser(environment.Environment())
     asts = [transform_one_check_script(script, allow_exceptions, timeout)
             for script in one_check_sat(parser.get_script(reader))]
+    if print_failure_reason:
+        for ast in asts:
+            not_ands = []
+            compound: c_ast.Compound = ast[0].children()[0][1].body
+            ands = [compound.block_items[-1].args.expr]
+            while ands:
+                current = ands.pop(0)
+                if isinstance(current, c_ast.BinaryOp) and current.op == '&&':
+                    ands += [current.left, current.right]
+                else:
+                    not_ands.append(current)
+
+            for i, not_and in enumerate(not_ands):
+                compound.block_items.append(
+                    c_ast.FuncCall(
+                        c_ast.ID('printf'),
+                        c_ast.ExprList([
+                            c_ast.Constant(
+                                'string',
+                                f'"{i}: %i\\n"'
+                            ),
+                            not_and
+                        ])
+                    )
+                )
     return [(DEFAULT_FUNCTIONS_CODE + c_generator.generic_visit(ast[0]), ast[1]) for ast in asts]
 
 
